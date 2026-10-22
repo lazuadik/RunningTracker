@@ -1,0 +1,4 @@
+-- Dijalankan otomatis sekali, saat container warehouse-db pertama kali dibuat.
+CREATE SCHEMA IF NOT EXISTS raw;
+CREATE SCHEMA IF NOT EXISTS staging;
+CREATE SCHEMA IF NOT EXISTS marts;

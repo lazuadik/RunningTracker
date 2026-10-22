@@ -1,0 +1,113 @@
+x-airflow-common: &airflow-common
+  build: .
+  image: running-tracker-airflow:latest
+  env_file: .env
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__WEBSERVER__WEB_SERVER_MASTER__TIMEOUT: "300"
+    AIRFLOW__WEBSERVER__WORKERS: "2"  
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+    PYTHONPATH: /opt/airflow
+  user: "${AIRFLOW_UID:-50000}:0"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./include:/opt/airflow/include
+    - ./data:/opt/airflow/data
+    - ./dbt_project:/opt/airflow/dbt_project
+    - ./logs:/opt/airflow/logs
+  depends_on:
+    airflow-db:
+      condition: service_healthy
+    warehouse-db:
+      condition: service_healthy
+
+services:
+  # Metadata Airflow (dipisah dari warehouse)
+  airflow-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Warehouse: tempat data raw, staging, marts
+  warehouse-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${WAREHOUSE_USER}
+      POSTGRES_PASSWORD: ${WAREHOUSE_PASSWORD}
+      POSTGRES_DB: ${WAREHOUSE_DB}
+    ports:
+      - "5433:5432" # akses dari laptop (DBeaver/VS Code) lewat localhost:5433
+    volumes:
+      - warehouse-db-data:/var/lib/postgresql/data
+      - ./init-warehouse.sql:/docker-entrypoint-initdb.d/init-warehouse.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username "$${AIRFLOW_ADMIN_USER}" \
+          --password "$${AIRFLOW_ADMIN_PASSWORD}" \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8081:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3000:3000"
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    volumes:
+      - metabase-data:/metabase-data
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  airflow-db-data:
+  warehouse-db-data:
+  metabase-data:
