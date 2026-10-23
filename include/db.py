@@ -6,11 +6,11 @@ import psycopg2
 def connection():
     """Buka koneksi ke database warehouse (Postgres)"""
     conn = psycopg2.connect(
-        host=os.environ("WAREHOUSE_HOST", "warehouse-db"),
-        port=os.environ("WAREHOUSE_PORT", "5432"),
-        dbname=os.environ("WAREHOUSE_DB"),
-        user=os.environ("WAREHOUSE_USER"),
-        password=os.environ("WAREHOUSE_PASSWORD"),
+        host=os.getenv("WAREHOUSE_HOST", "warehouse-db"),
+        port=os.getenv("WAREHOUSE_PORT", "5432"),
+        dbname=os.environ["WAREHOUSE_DB"],
+        user=os.environ["WAREHOUSE_USER"],
+        password=os.environ["WAREHOUSE_PASSWORD"],
     )
     try:
         yield conn
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS raw.strava_activities (
 -- Strava bisa mengganti refresh token tiap refresh, jadi token terbaru disimpan di sini.
 CREATE TABLE IF NOT EXISTS raw.strava_auth (
     id      INT PRIMARY KEY DEFAULT 1,
-    refresh token   TEXT NOT NULL,
+    refresh_token   TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     CHECK (id = 1)
 );

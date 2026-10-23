@@ -8,7 +8,7 @@ from airflow.decorators import dag, task
 from psycopg2.extras import execute_values
 
 from include.db import connection, init_tables
-from include.strava_client import fetch_activities, fetch_activitites, refresh_access_token
+from include.strava_client import fetch_activities, fetch_activities, refresh_access_token
 
 RAW_DIR = Path("/opt/airflow/data/raw/strava")
 LOOKBACK_DAYS = 3 #kenapa 3, karena untuk mengantisipasi aktivitas yang mungkin diedit oleh user
@@ -16,7 +16,7 @@ LOOKBACK_DAYS = 3 #kenapa 3, karena untuk mengantisipasi aktivitas yang mungkin 
 
 @dag(
     dag_id = "strava_ingest",
-    schedule = "adaily",
+    schedule = "@daily",
     start_date = datetime(2026,1,1),
     catchup = False,
     default_args = {"retries": 3, "retry_delay": timedelta(minutes=5)},
@@ -77,9 +77,9 @@ def strava_ingest():
                 )
             return len(rows)
 
-        tables = create_tables()
-        path = extract()
-        tables >> path
-        load(path)
+    tables = create_tables()
+    path = extract()
+    tables >> path
+    load(path)
 
 strava_ingest()

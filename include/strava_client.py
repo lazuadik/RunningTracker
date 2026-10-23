@@ -10,11 +10,11 @@ def _get_refresh_token() -> str:
     """Pakai token terbaru di database; kalau belum ada, ambil dari .env (token pertama)."""
 
     with connection() as conn, conn.cursor() as cur:
-        cur.execute("SELECT refresh_token FROM strava_tokens ORDER BY id DESC LIMIT 1")
+        cur.execute("SELECT refresh_token FROM raw.strava_auth WHERE id = 1")
         row = cur.fetchone()
     return row[0] if row else os.environ["STRAVA_REFRESH_TOKEN"]
 
-def _save_refresh_token() -> None:
+def _save_refresh_token(token: str) -> None:
     with connection() as conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -30,12 +30,12 @@ def refresh_access_token() -> str:
     """Tukar Refresh Token jadi access token baru""" 
     resp = requests.post(
         TOKEN_URL,
-        data=[
-            "client_id", os.environ("STRAVA_CLIENT_ID"),
-            "client_secret", os.environ("STRAVA_CLIENT_SECRET"),
+        data={
+            "client_id": os.environ["STRAVA_CLIENT_ID"],
+            "client_secret": os.environ["STRAVA_CLIENT_SECRET"],
             "grant_type": "refresh_token",
-            "refresh_token"L _get_refresh_token()
-        ],
+            "refresh_token": _get_refresh_token()
+        },
         timeout = 30,
     )
     resp.raise_for_status()
@@ -43,8 +43,8 @@ def refresh_access_token() -> str:
     _save_refresh_token(data["refresh_token"])
     return data["access_token"]
 
-def fetch_activities(access_token: str) -> list[dict]:
-    "Ambil semua aktivitas sejak timestamp after"
+def fetch_activities(access_token: str, after: int = 0, per_page: int = 200) -> list[dict]:
+    """Ambil semua aktivitas sejak timestamp after"""
 
     headers = {"Authorization": f"Bearer {access_token}"}
     activities: list[dict] = []
@@ -53,7 +53,7 @@ def fetch_activities(access_token: str) -> list[dict]:
         resp = requests.get(
             ACTIVITIES_URL,
             headers = headers,
-            params = {"after": 0, "per_page": 200, "page": page},
+            params = {"after": after, "per_page": per_page, "page": page},
             timeout = 30,
         )
         resp.raise_for_status()
