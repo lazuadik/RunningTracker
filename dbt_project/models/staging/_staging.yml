@@ -1,0 +1,15 @@
+version: 2
+
+models: 
+  - name: stg_strava_activities
+    description: "Aktivitas strava"
+
+    columns:
+      - name: activity_id
+        tests: 
+          - unique
+          - not_null
+      
+      - name: started_at_local
+        tests:
+          - not_null

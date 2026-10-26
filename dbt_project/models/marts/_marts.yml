@@ -1,0 +1,42 @@
+version: 2
+
+models: 
+  - name: fct_runs
+    description: "Satu baris per olahraga dengan jarak km dan pace ataupun weight (untuk gym)."
+    columns: 
+      - name: activity_id
+        tests:
+          - unique
+          - not_null
+      - name: sport_type
+        description: "jenis olahraga"
+        tests: 
+          - accepted_values:
+              values: ["Run", "TrailRun", "Walk"]
+      - name: distance_km
+        description: "jarak olahraga dalam kilometer"
+        tests:
+          - not_null
+      - name: pace_min_per_km
+        description: "pace lari dalam menit per kilometer"
+        tests: 
+          - not_null
+  
+  - name: weekly_summary
+    description: "Ringkasan lari perminggu"
+    columns:
+      - name: week_start
+        description: "Tanggal Senin di awal minggu"
+        tests:
+          - unique
+          - not_null
+
+  - name: personal_records
+    description: "Rekor terbaik"
+    columns:
+      - name: distance_bucket
+        description: "Bucket jarak olahraga"
+        tests:
+          - unique
+          - not_null
+     
