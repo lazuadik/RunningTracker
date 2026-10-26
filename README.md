@@ -4,7 +4,7 @@ Pipeline data end-to-end untuk menganalisis performa lari pribadi: aktivitas dia
 
 > Proyek belajar data engineering. Data yang dipakai adalah data aktivitas lari milik penulis sendiri.
 
-docs/images/dashboard.png
+![Dashboard Visualization](docs/images/dashboard.png) 
 
 ## Status
 
