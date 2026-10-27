@@ -1,0 +1,7 @@
+name,event_date,city,distance,price_idr,registration_url,source
+CONTOH - Fun Run 5K Akhir Tahun,2026-11-22,Jakarta,5K,Rp 150.000,https://example.com/fun-run-5k,contoh-fiktif
+CONTOH - City Run 10K,2026-12-13,Bandung,10k,250000,https://example.com/city-run,contoh-fiktif
+CONTOH - City Run 21K,2026-12-13,Bandung,HM,350000,https://example.com/city-run,contoh-fiktif
+CONTOH - Half Marathon Yogyakarta,14/02/2027,Yogyakarta,21.1,Rp 400.000,https://example.com/half-yogya,contoh-fiktif
+CONTOH - Marathon Kota,2027-04-18,Jakarta,Marathon,650000,,contoh-fiktif
+CONTOH - Trail Run 10K,2027-06-06,Bogor,10 km,gratis,https://example.com/trail,contoh-fiktif

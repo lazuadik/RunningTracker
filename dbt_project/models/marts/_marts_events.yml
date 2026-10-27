@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: dim_events
+    description: "Semua event race dengan penanda is_upcoming dan days_until."
+    columns:
+      - name: event_id
+        tests:
+          - unique
+          - not_null
+      - name: distance_label
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["5K", "10K", "21K", "42K"]
+
+  - name: race_readiness
+    description: "Kesiapan tiap event yang akan datang, dari mileage dan lari terpanjang terbaru."
+    columns:
+      - name: event_id
+        tests:
+          - unique
+          - not_null
+      - name: readiness_status
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["Siap", "Di jalur", "Perlu dikejar"]

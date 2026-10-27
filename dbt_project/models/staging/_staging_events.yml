@@ -1,0 +1,13 @@
+version: 2
+ 
+models:
+  - name: stg_events
+    description: "Event race dengan nama kolom yang rapi."
+    columns:
+      - name: event_id
+        tests:
+          - unique
+          - not_null
+      - name: event_date
+        tests:
+          - not_null

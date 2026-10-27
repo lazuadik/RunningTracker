@@ -1,0 +1,14 @@
+version: 2
+ 
+sources:
+  - name: raw_events
+    description: "Data event race hasil ingestion dari CSV (sudah divalidasi di Python)."
+    schema: raw
+    tables:
+      - name: events
+        description: "Satu baris per event per kategori jarak."
+        columns:
+          - name: event_id
+            tests:
+              - unique
+              - not_null
