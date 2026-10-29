@@ -2,15 +2,15 @@ import csv
 import hashlib
 import re
 from datetime import date, datetime
-from pathlib import lib
+from pathlib import Path
 
 from psycopg2.extras import execute_values
 from include.db import connection
 
 DDL = """
-CREATE SCHEMA IF NOT EXISTS raw:
+CREATE SCHEMA IF NOT EXISTS raw;
 
-CREATE TABLE IF NOT EXISTS raw_events (
+CREATE TABLE IF NOT EXISTS raw.events (
     event_id            TEXT PRIMARY KEY,
     name                TEXT NOT NULL,
     event_date          DATE NOT NULL,
@@ -44,7 +44,7 @@ REQUIRED_COLUMNS = {"name", "event_date", "distance"}
 def make_event_id(name:str, event_date:date, distance_label:str) -> str:
     """ID stabil dari isi event: file sama dibaca dua kali menghasilkan ID yang sama (idempotent)"""
 
-    key = f"{name.lower()}|event_date.isoformat()|{distance_label}"
+    key = f"{name.lower()}|{event_date.isoformat()}|{distance_label}"
     return hashlib.md5(key.encode("utf-8")).hexdigest()
 
 def _parse_date(value) -> date:
@@ -65,7 +65,7 @@ def _parse_distance(value) -> str:
     match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(?:k|km)?", s)
     if match:
         number = float(match.group(1))
-        for low, high, label in _DISTANCE_RANGES:
+        for low, high, label in _DISTANCE_RANGE:
             if low <= number <= high:
                 return label
     raise ValueError(f"jarak tidak dikenali: {value!r} (didukung: 5K, 10K, 21K/HM, 42K/FM)")
@@ -97,19 +97,19 @@ def _clean_row(raw: dict) -> dict:
         "event_date": event_date,
         "city": city,
         "distance_label": label,
-        "distance_km": DISTANCE[label],
+        "distance_km": DISTANCES[label],
         "price_idr": _parse_price(raw.get("price_idr")),
         "registration_url": url,
         "source": (raw.get("source") or "").strip() or "manual",
     }
 
-def parse_event(path) -> tupe[list[dict], list[dict]]:
+def parse_events(path) -> tuple[list[dict], list[dict]]:
     """Baca csv, mengembalikan baris valid, baris ditolak, dan alasan. Duplikat digabung: yang terakhir menang"""
     valid_by_id: dict[str, str] = {}
     rejected: list[dict] = []
     with open(path, newline="", encoding="utf-8-sig") as f:
 
-        reader = csv.DictReader()
+        reader = csv.DictReader(f)
         missing = REQUIRED_COLUMNS - set(reader.fieldnames or [])
         if missing:
             raise ValueError(f"kolom wajib tidak ada di csv: {sorted(missing)}")
@@ -137,12 +137,12 @@ def write_rejected(rejected: list[dict], directory: Path):
         writer.writerows(rejected)
     return path
 
-def init_events_label() -> None:
+def init_events_table() -> None:
     with connection() as conn, conn.cursor() as cur:
         cur.execute(DDL)
 
 
-def upsert_events(row: list[dict]) -> int:
+def upsert_events(rows: list[dict]) -> int:
     """Upsert berdasarkan event_id: dijalankan dua kali hasilnya sama"""
     values = [
         (r["event_id"], r["name"], r["event_date"], r["city"], r["distance_label"],

@@ -8,3 +8,4 @@ dbt_project/target/
 dbt_project/dbt_packages/
 .DS_Store
 .user.yml
+data/events/rejected/

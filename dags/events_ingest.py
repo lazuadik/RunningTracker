@@ -3,20 +3,20 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from airflow.decorate import dag, task
-from airflow.operators.hash import BashOperator
+from airflow.decorators import dag, task
+from airflow.operators.bash import BashOperator
 
-from include.events import init_events_tabel, load_events as load_events_csv
+from include.events import init_events_table, load_events as load_events_csv
 
-EVENTS_CSV = Path("opt/airflow/data/events/events_seed.csv")
-REJECTED_DIR = Path("opt/airflow/data/events/rejected")
+EVENTS_CSV = Path("/opt/airflow/data/events/events_seed.csv")
+REJECTED_DIR = Path("/opt/airflow/data/events/rejected")
 
 #hanya model event saja yang dirun di DAG ini
 
 DBT_CMD = (
     "/home/airflow/dbt_venv/bin/dbt {cmd}"
-    "--select stg_events dim_events race_readiness source:raw_events "
-    "--project-dir /opt/airflow/dbt_project --profiles-dir /opt/airflow/dbt_project"
+    " --select stg_events dim_events race_readiness source:raw_events "
+    " --project-dir /opt/airflow/dbt_project --profiles-dir /opt/airflow/dbt_project"
 )
 
 @dag(
@@ -31,7 +31,7 @@ DBT_CMD = (
 def event_ingest():
     @task
     def create_event_tables():
-        init_events_tabel()
+        init_events_table()
 
     @task 
     def load_events() -> dict:
@@ -49,4 +49,4 @@ def event_ingest():
     tables >> loaded
     loaded >> dbt_run >> dbt_test 
 
-events_ingest()
+event_ingest()
