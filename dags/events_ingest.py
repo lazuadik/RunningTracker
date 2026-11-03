@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 from pathlib import Path
+from include.telegram import notify_failure
 
 from airflow.decorators import dag, task
 from airflow.operators.bash import BashOperator
@@ -24,7 +25,7 @@ DBT_CMD = (
     schedule="@weekly",
     start_date=datetime(2026, 1, 1),
     catchup=False,
-    default_args={"retries": 1, "retry_delay": timedelta(minutes=5)},
+    default_args={"retries": 1, "retry_delay": timedelta(minutes=5), "on_failure_callback": notify_failure},
     tags=["events", "ingestion"],
 )
 
@@ -47,6 +48,6 @@ def event_ingest():
     tables = create_event_tables()
     loaded = load_events()
     tables >> loaded
-    loaded >> dbt_run >> dbt_test 
+    loaded >> dbt_run >> dbt_test
 
 event_ingest()

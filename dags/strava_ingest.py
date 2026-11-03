@@ -3,6 +3,8 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from include.telegram import notify_failure, send_telegram_message
+from include.run_summary import notify_if_new_run
 
 from airflow.decorators import dag, task
 from psycopg2.extras import execute_values
@@ -25,8 +27,8 @@ DBT_CMD = (
     schedule = "@daily",
     start_date = datetime(2026,1,1),
     catchup = False,
-    default_args = {"retries": 3, "retry_delay": timedelta(minutes=5)},
-    tags = ["strava", "ingest"],
+    default_args = {"retries": 3, "retry_delay": timedelta(minutes=5), "on_failure_callback": notify_failure},
+    tags = ["strava", "ingest"],    
 )
 
 def strava_ingest():
@@ -81,14 +83,19 @@ def strava_ingest():
             rows,
             )
         return len(rows)
+    
+    @task
+    def notify_run():
+        return notify_if_new_run(send_telegram_message)
 
 
     tables = create_tables()
     path = extract()
     loaded = load(path)
+    notify = notify_run()
 
     dbt_run = BashOperator(task_id="dbt_run", bash_command=DBT_CMD.format(cmd="run"))
     dbt_test = BashOperator(task_id="dbt_test", bash_command=DBT_CMD.format(cmd="test"))
-    tables >> path >> loaded >> dbt_run >> dbt_test 
+    tables >> path >> loaded >> dbt_run >> dbt_test >> notify
 
 strava_ingest()
