@@ -16,7 +16,7 @@ def build_run_summary() -> str | None:
     with connection() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT activity_name, run_date, distance_km, pace_label, moving_time_s
+            SELECT activity_name, run_date, distance_km, pace_label, moving_time_s, avg_heartrate
             FROM marts.fct_runs
             ORDER BY run_date DESC
             LIMIT 1
@@ -45,10 +45,11 @@ def build_run_summary() -> str | None:
         )
         race = cur.fetchone()
 
-    name, run_date, km, pace, moving_time = run
+    name, run_date, km, pace, moving_time, avg_hr = run
     lines = [
         f"🏃 Run: {name} ({run_date.strftime('%d %b %Y')})",
         f"📊 Jarak: {km:.1f} km · Pace: {pace} · Durasi: {_fmt_duration(moving_time)}",
+        f"❤️  Rata-rata HR: {avg_hr:.0f} bpm"
     ]
 
     week_km, week_runs = (float(week[0]), week[1]) if week else (0.0, 0)
@@ -58,7 +59,7 @@ def build_run_summary() -> str | None:
         ev_name, ev_date, weeks_until, readiness, est_finish, avg_weekly_km_month, target_weekly_mileage = race
         lines += [
             "",
-            f"🎯 {ev_name} ({ev_date.strftime('%d %b %Y')}, {weeks_until} minggu lagi)\n"
+            f"🎯 {ev_name} ({ev_date.strftime('%d %b %Y')}, {weeks_until} minggu lagi)",
             f"Status: {readiness} · Est. Finish: {est_finish}",
             f"Rata-rata mingguan bulan ini: {avg_weekly_km_month:.1f} km · Target mingguan: {target_weekly_mileage:.1f} km"
         ]
