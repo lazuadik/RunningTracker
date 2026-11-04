@@ -1,0 +1,11 @@
+target-version = "py311"
+line-length = 120
+extend-exclude = ["dbt_project/target", "dbt_project/dbt_packages", "logs", "data"]
+
+[lint]
+# E/W: gaya penulisan dasar, F: kesalahan seperti impor tak terpakai atau nama tak terdefinisi,
+# I: urutan impor.
+select = ["E", "W", "F", "I"]
+
+[lint.isort]
+known-first-party = ["include"]

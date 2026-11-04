@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Lint (ruff) dan unit test (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Pasang dependensi
+        run: pip install ruff pytest psycopg2-binary requests
+      - name: Lint
+        run: ruff check .
+      - name: Unit test
+        run: pytest -q
+
+  dbt-parse:
+    name: dbt parse
+    runs-on: ubuntu-latest
+    env:
+      # Nilai palsu: dbt parse tidak membuka koneksi database, hanya perlu profiles.yml bisa dirender.
+      WAREHOUSE_HOST: localhost
+      WAREHOUSE_PORT: "5432"
+      WAREHOUSE_USER: ci
+      WAREHOUSE_PASSWORD: ci
+      WAREHOUSE_DB: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Pasang dbt
+        run: pip install "dbt-postgres==1.9.0"
+      - name: Parse proyek dbt
+        working-directory: dbt_project
+        run: dbt parse --profiles-dir . --project-dir .
+
+  dag-integrity:
+    name: Cek struktur DAG Airflow
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Pasang Airflow (dengan file constraints resmi)
+        run: |
+          pip install "apache-airflow==2.10.5" psycopg2-binary requests pytest \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.11.txt"
+      - name: Tes struktur DAG
+        run: pytest -q tests/test_dag_integrity.py

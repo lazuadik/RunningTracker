@@ -46,9 +46,27 @@ Jurnal masalah nyata selama membangun Tahap 1-4, beserta penyebab dan cara menem
 | Model `marts` tetap *view* walaupun dikonfigurasi `table` | Salah ketik `+materalized` (kurang huruf `i`); dbt mengabaikan kunci yang tidak dikenalnya tanpa error | `+materialized: table`. Cek dengan `dbt ls --output json --output-keys "name config"` |
 | `dbt debug` menampilkan `git [ERROR]` | Git hanya dibutuhkan untuk `dbt deps` | Abaikan; yang penting `Connection test: OK` |
 
+## Event race, notifikasi, dan CI
+
+| Gejala | Penyebab | Solusi |
+|---|---|---|
+| `Tidak ada baris event yang valid ... (1 ditolak)` | Satu-satunya baris di CSV gagal validasi (misalnya tanggal `2026/11/22`) | Buka `data/events/rejected/`; kolom `reason` menjelaskan alasannya. Pakai `YYYY-MM-DD` |
+| `FileNotFoundError: 'opt/airflow/data/...'` | Path di DAG tanpa `/` di depan sehingga dianggap relatif | `/opt/airflow/data/events/events_seed.csv` |
+| `dbt: No such command 'run--select'` | Spasi hilang di perintah `BashOperator` | `dbt run --select ...`. Cek juga `dbt test` |
+| `ImportError: cannot import name ...` dari modul `include/` | Fungsi belum ditulis, belum disimpan, atau namanya salah ketik | `docker compose exec airflow-scheduler grep -n "def " /opt/airflow/include/<file>.py` |
+| Tabel `marts` tidak berubah setelah ingestion | `marts` berupa table: isinya salinan dari `dbt run` terakhir. View `staging` langsung ikut `raw`, `marts` tidak | Pastikan `dbt_run` ada dan tersambung **setelah** `load` di DAG (`tests/test_dag_integrity.py` memeriksanya) |
+| Perintah `docker compose exec ... "...<>..."` gagal di CMD: `> was unexpected at this time` | CMD Windows membaca `<>` sebagai redirect dan tidak mengenal `\"` | Masuk ke psql interaktif: `docker compose exec warehouse-db sh -c "psql -U $POSTGRES_USER -d $POSTGRES_DB"`, lalu ketik SQL di dalamnya |
+| Metabase: `Select statement did not produce a ResultSet` | Metabase hanya menjalankan query pembaca; `DELETE`/`UPDATE` tidak mengembalikan hasil | Ubah data lewat psql atau DBeaver; Metabase hanya untuk membaca |
+| Data event contoh masih muncul | Upsert hanya menambah dan memperbarui, tidak menghapus | `delete from raw.events where ...` lalu jalankan `events_ingest` lagi |
+| Telegram: `KeyError: 'TELEGRAM_BOT_TOKEN'` | Variabel belum ada di `.env` atau container belum dimuat ulang | Isi `.env`, lalu `docker compose up -d --force-recreate airflow-webserver airflow-scheduler` |
+| Telegram `401` / `chat not found` | Token salah / `chat_id` salah atau belum pernah mengirim pesan ke bot | Cek token; kirim pesan ke bot dulu, lalu ambil `chat_id` dari `getUpdates` |
+| CI gagal di `ruff`: `I001 Import block is un-sorted` | Urutan impor tidak sesuai aturan isort | `ruff check --fix .` lalu commit |
+
 ## Pelajaran umum
 
 - Baca **baris terakhir** traceback dan nomor baris file milik sendiri.
 - Uji potongan kecil di luar Airflow (`python -c`, `airflow tasks test`) sebelum menunggu retry penjadwal.
 - Pengaturan yang salah eja sering diabaikan tanpa error. Bandingkan hasilnya dengan yang diharapkan (jumlah view/table, nama schema), jangan hanya melihat "sukses".
 - Hijau di UI belum berarti pekerjaannya terjadi. Selalu verifikasi dengan query ke database.
+- Urutan task di DAG adalah bagian dari logika. Task yang tidak punya `>>` ke pendahulunya berjalan bersamaan dengannya, bukan sesudahnya.
+- Token, secret, dan password tidak pernah ditempel di chat atau screenshot. Kalau terlanjur, cabut dan buat baru.
