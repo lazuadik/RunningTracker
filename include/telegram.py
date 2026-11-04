@@ -1,5 +1,7 @@
-import os 
+import os
+
 import requests
+
 
 def _get_telegram_bot_token() -> str:
     return os.environ["TELEGRAM_BOT_TOKEN"]

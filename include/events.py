@@ -5,6 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from psycopg2.extras import execute_values
+
 from include.db import connection
 
 DDL = """
@@ -120,7 +121,7 @@ def parse_events(path) -> tuple[list[dict], list[dict]]:
                 rejected.append({**raw, "line": line_no, "reason": str(exc)})
                 continue
             valid_by_id[row["event_id"]] = row
-    return list(valid_by_id.values()), rejected 
+    return list(valid_by_id.values()), rejected
 
 def write_rejected(rejected: list[dict], directory: Path):
     """Simpan baris yang ditolak ke file supaya bisa diperbaiki. Mengembalikan path-nya (atau None)."""

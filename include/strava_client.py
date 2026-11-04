@@ -1,4 +1,5 @@
 import os
+
 import requests
 
 from include.db import connection
@@ -27,7 +28,7 @@ def _save_refresh_token(token: str) -> None:
         )
 
 def refresh_access_token() -> str:
-    """Tukar Refresh Token jadi access token baru""" 
+    """Tukar Refresh Token jadi access token baru"""
     resp = requests.post(
         TOKEN_URL,
         data={

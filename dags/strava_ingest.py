@@ -3,15 +3,15 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from include.telegram import notify_failure, send_telegram_message
-from include.run_summary import notify_if_new_run
 
 from airflow.decorators import dag, task
-from psycopg2.extras import execute_values
 from airflow.operators.bash import BashOperator
+from psycopg2.extras import execute_values
 
 from include.db import connection, init_tables
-from include.strava_client import fetch_activities, fetch_activities, refresh_access_token
+from include.run_summary import notify_if_new_run
+from include.strava_client import fetch_activities, refresh_access_token
+from include.telegram import notify_failure, send_telegram_message
 
 RAW_DIR = Path("/opt/airflow/data/raw/strava")
 LOOKBACK_DAYS = 3 #kenapa 3, karena untuk mengantisipasi aktivitas yang mungkin diedit oleh user
@@ -28,16 +28,16 @@ DBT_CMD = (
     start_date = datetime(2026,1,1),
     catchup = False,
     default_args = {"retries": 3, "retry_delay": timedelta(minutes=5), "on_failure_callback": notify_failure},
-    tags = ["strava", "ingest"],    
+    tags = ["strava", "ingest"],
 )
 
 def strava_ingest():
     @task
     def create_tables():
         init_tables()
-        
+
     #Test ini adalah komentar, tidak akan dijalankan
-    #Init_tables() 
+    #Init_tables()
     @task
     def extract() -> str:
 
@@ -47,7 +47,7 @@ def strava_ingest():
         with connection() as conn, conn.cursor() as cur:
             cur.execute("SELECT MAX(start_date) FROM raw.strava_activities")
             last = cur.fetchone()[0]
-        after = int((last - timedelta(days=LOOKBACK_DAYS)).timestamp()) if last else 0 
+        after = int((last - timedelta(days=LOOKBACK_DAYS)).timestamp()) if last else 0
 
         activities = fetch_activities(refresh_access_token(), after=after)
 
@@ -83,7 +83,7 @@ def strava_ingest():
             rows,
             )
         return len(rows)
-    
+
     @task
     def notify_run():
         return notify_if_new_run(send_telegram_message)

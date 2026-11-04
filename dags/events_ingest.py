@@ -2,12 +2,13 @@
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from include.telegram import notify_failure
 
 from airflow.decorators import dag, task
 from airflow.operators.bash import BashOperator
 
-from include.events import init_events_table, load_events as load_events_csv
+from include.events import init_events_table
+from include.events import load_events as load_events_csv
+from include.telegram import notify_failure
 
 EVENTS_CSV = Path("/opt/airflow/data/events/events_seed.csv")
 REJECTED_DIR = Path("/opt/airflow/data/events/rejected")
@@ -34,7 +35,7 @@ def event_ingest():
     def create_event_tables():
         init_events_table()
 
-    @task 
+    @task
     def load_events() -> dict:
         result = load_events_csv(EVENTS_CSV, REJECTED_DIR)
         if result['rejected']:

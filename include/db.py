@@ -1,6 +1,8 @@
 import os
-from contextlib import contextmanager 
+from contextlib import contextmanager
+
 import psycopg2
+
 
 @contextmanager
 def connection():

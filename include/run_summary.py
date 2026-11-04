@@ -4,7 +4,7 @@ LOG_DDL = """
 CREATE TABLE IF NOT EXISTS raw.notification_log (
     activity_id BIGINT PRIMARY KEY,
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
-) 
+)
 """
 
 def _fmt_duration(seconds: int) -> str:
@@ -25,10 +25,10 @@ def build_run_summary() -> str | None:
         run = cur.fetchone()
         if run is None:
             return None
-        
+
         cur.execute(
             """
-            SELECT total_km, run_count 
+            SELECT total_km, run_count
             FROM marts.weekly_summary
             WHERE week_start = date_trunc('week', now() AT TIME ZONE 'Asia/Bangkok')::date
             """
@@ -37,10 +37,11 @@ def build_run_summary() -> str | None:
 
         cur.execute(
             """
-            SELECT event_name, event_date, weeks_until, readiness_status, est_finish_label, avg_weekly_km_month, target_weekly_mileage
+            SELECT event_name, event_date, weeks_until, readiness_status,
+                   est_finish_label, avg_weekly_km_month, target_weekly_mileage
             FROM marts.race_readiness
-            ORDER BY event_date DESC
-            LIMIT 1 
+            ORDER BY event_date
+            LIMIT 1
             """
         )
         race = cur.fetchone()
@@ -59,9 +60,9 @@ def build_run_summary() -> str | None:
         ev_name, ev_date, weeks_until, readiness, est_finish, avg_weekly_km_month, target_weekly_mileage = race
         lines += [
             "",
-            f"🎯 {ev_name} ({ev_date.strftime('%d %b %Y')}, {weeks_until} minggu lagi)",
+            f"🎯 {ev_name} ({ev_date.strftime('%d %b %Y')}, {weeks_until} weeks left)",
             f"Status: {readiness} · Est. Finish: {est_finish}",
-            f"Rata-rata mingguan bulan ini: {avg_weekly_km_month:.1f} km · Target mingguan: {target_weekly_mileage:.1f} km"
+            f"Average weekly bulan ini: {avg_weekly_km_month:.1f} km · Target mingguan: {target_weekly_mileage:.1f} km"
         ]
 
     return "\n".join(lines)
